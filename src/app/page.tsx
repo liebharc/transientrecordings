@@ -182,7 +182,7 @@ export default function Home() {
 
   return (
     <div className="flex justify-center min-h-screen">
-      <main className="flex flex-col gap-8 pt-[33vh]">
+      <main className="flex flex-col gap-8 pt-[33vh] px-2">
         <div className="flex gap-4 justify-center">
           <Button
             onClick={handleRecord}

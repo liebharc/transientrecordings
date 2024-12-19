@@ -2,7 +2,17 @@
 
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, PauseCircle, PlayCircle, Share, StopCircle } from "lucide-react";
+import {
+  Mic,
+  Pause,
+  PauseCircle,
+  Play,
+  PlayCircle,
+  Share,
+  SkipBack,
+  SkipForward,
+  StopCircle,
+} from "lucide-react";
 import useAutoResetState from "../../hooks/useAutoResetState";
 
 export default function Home() {
@@ -108,6 +118,35 @@ export default function Home() {
     }
   };
 
+  // Seek to a specific time in the audio
+  const handleSeek = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newTime = Number(event.target.value);
+    if (audioElementRef.current) {
+      audioElementRef.current.currentTime = newTime;
+      setDuration(newTime);
+    }
+  };
+
+  const handleBackBy5s = () => {
+    if (audioElementRef.current) {
+      audioElementRef.current.currentTime = Math.max(
+        0,
+        audioElementRef.current.currentTime - 5,
+      );
+      setDuration(Math.floor(audioElementRef.current.currentTime));
+    }
+  };
+
+  const handleForwardBy5s = () => {
+    if (audioElementRef.current) {
+      audioElementRef.current.currentTime = Math.min(
+        totalDuration,
+        audioElementRef.current.currentTime + 5,
+      );
+      setDuration(Math.floor(audioElementRef.current.currentTime));
+    }
+  };
+
   // Share recorded audio using the Web Share API
   const handleShare = async () => {
     if (recordedBlob) {
@@ -205,12 +244,43 @@ export default function Home() {
 
         <p>{message}</p>
 
-        <div className="mt-4 text-xl">
+        <div className="mt-4 text-xl items-center justify-center flex flex-col">
           {!isRecording && totalDuration > 0 ? (
-            <span>
-              Position: {formatTime(Math.min(duration, totalDuration))}/
-              {formatTime(totalDuration)}
-            </span>
+            <>
+              <span>
+                Position: {formatTime(duration)}/{formatTime(totalDuration)}
+              </span>
+              <div className="flex items-center gap-4">
+                <Button
+                  onClick={handleBackBy5s}
+                  className="px-4 py-2 bg-gray-500"
+                >
+                  <SkipBack className="inline-block" />
+                </Button>
+                <input
+                  type="range"
+                  min="0"
+                  max={totalDuration}
+                  value={duration}
+                  onChange={handleSeek}
+                  className="w-full"
+                />
+
+                <Button onClick={handlePlay}>
+                  {isPlaying ? (
+                    <Pause className="inline-block" />
+                  ) : (
+                    <Play className="inline-block" />
+                  )}
+                </Button>
+                <Button
+                  onClick={handleForwardBy5s}
+                  className="px-4 py-2 bg-gray-500"
+                >
+                  <SkipForward className="inline-block" />
+                </Button>
+              </div>
+            </>
           ) : (
             <span>Duration: {formatTime(duration)}</span>
           )}

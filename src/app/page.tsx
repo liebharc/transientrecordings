@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { Mic, PauseCircle, PlayCircle, Share, StopCircle } from "lucide-react";
 import { useState, useRef } from "react";
 
 export default function Home() {
@@ -17,8 +19,8 @@ export default function Home() {
   // Start or stop recording
   const handleRecord = async () => {
     if (isRecording) {
-      // Stop recording
-      mediaRecorderRef.current?.stop();
+      // Pause recording
+      mediaRecorderRef.current?.pause();
       setIsRecording(false);
       if (timerRef.current) clearInterval(timerRef.current);
     } else {
@@ -93,7 +95,11 @@ export default function Home() {
       try {
         if (
           navigator.canShare &&
-          navigator.canShare({ files: [recordedBlob] })
+          navigator.canShare({
+            files: [
+              new File([recordedBlob], "recording.wav", { type: "audio/wav" }),
+            ],
+          })
         ) {
           // Web Share API available and supports file sharing
           await navigator.share({
@@ -121,30 +127,41 @@ export default function Home() {
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
       <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
         <div className="flex gap-4">
-          <button
+          <Button
             onClick={handleRecord}
-            className="px-4 py-2 bg-blue-500 text-white rounded"
+            disabled={isPlaying}
+            className="px-4 py-2 bg-blue-500"
           >
-            {isRecording ? "Stop Recording" : "Start Recording"}
-          </button>
-          <button
+            {isRecording ? (
+              <PauseCircle className="inline-block" />
+            ) : (
+              <Mic className="inline-block" />
+            )}
+          </Button>
+          <Button
             onClick={handlePlay}
-            className="px-4 py-2 bg-green-500 text-white rounded"
+            disabled={!recordedBlob || isRecording}
+            className="px-4 py-2 bg-green-500"
           >
-            {isPlaying ? "Pause" : "Play"}
-          </button>
-          <button
+            {isPlaying ? (
+              <PauseCircle className="inline-block" />
+            ) : (
+              <PlayCircle className="inline-block" />
+            )}
+          </Button>
+          <Button
             onClick={handleStop}
             className="px-4 py-2 bg-red-500 text-white rounded"
           >
-            Stop
-          </button>
-          <button
+            <StopCircle className="inline-block" />
+          </Button>
+          <Button
+            disabled={!recordedBlob}
             onClick={handleShare}
             className="px-4 py-2 bg-yellow-500 text-white rounded"
           >
-            Share
-          </button>
+            <Share className="inline-block" />
+          </Button>
         </div>
         <div className="mt-4 text-xl">Duration: {duration} seconds</div>
         <audio ref={audioElementRef} />

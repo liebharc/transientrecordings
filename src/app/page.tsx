@@ -44,6 +44,10 @@ export default function Home() {
 						const blob = new Blob(chunks, { type: 'audio/wav' });
 						audioElementRef.current!.src = URL.createObjectURL(blob);
 						setRecordedBlob(blob);
+
+						stream.getTracks().forEach((track) => {
+							track.stop();
+						});
 					};
 
 					setTotalDuration(0);

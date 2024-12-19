@@ -44,11 +44,6 @@ export default function Home() {
             const blob = new Blob(chunks, { type: "audio/wav" });
             audioElementRef.current!.src = URL.createObjectURL(blob);
             setRecordedBlob(blob);
-            // Set the total duration of the recording
-            const audio = new Audio(URL.createObjectURL(blob));
-            audio.onloadedmetadata = () => {
-              setTotalDuration(Math.floor(audio.duration));
-            };
           };
 
           setTotalDuration(0);
@@ -215,7 +210,15 @@ export default function Home() {
           )}
         </div>
 
-        <audio ref={audioElementRef} onEnded={handleStop} />
+        <audio
+          ref={audioElementRef}
+          onEnded={handleStop}
+          onLoadedData={(event) =>
+            setTotalDuration(
+              Math.floor((event.target as HTMLAudioElement).duration)
+            )
+          }
+        />
       </main>
     </div>
   );

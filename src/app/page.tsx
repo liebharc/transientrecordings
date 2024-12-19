@@ -1,17 +1,16 @@
 "use client";
 
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, PauseCircle, PlayCircle, Share, StopCircle } from "lucide-react";
-import { useState, useRef } from "react";
 
 export default function Home() {
-  // State for managing recording status, playback status, and duration
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [duration, setDuration] = useState<number>(0);
+  const [totalDuration, setTotalDuration] = useState<number>(0);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
 
-  // Refs for MediaRecorder, audio element, and timer
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -39,12 +38,17 @@ export default function Home() {
         mediaRecorderRef.current.onstop = () => {
           const blob = new Blob(chunks, { type: "audio/wav" });
           setRecordedBlob(blob);
+          // Set the total duration of the recording
+          const audio = new Audio(URL.createObjectURL(blob));
+          audio.onloadedmetadata = () => {
+            setTotalDuration(Math.floor(audio.duration));
+          };
         };
 
         mediaRecorderRef.current.start();
         setIsRecording(true);
 
-        // Start timer
+        // Start timer for recording
         timerRef.current = setInterval(() => {
           setDuration((prev) => prev + 1);
         }, 1000);
@@ -101,7 +105,6 @@ export default function Home() {
             ],
           })
         ) {
-          // Web Share API available and supports file sharing
           await navigator.share({
             files: [
               new File([recordedBlob], "recording.wav", { type: "audio/wav" }),
@@ -124,8 +127,8 @@ export default function Home() {
   };
 
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
+    <div className="flex items-center justify-center min-h-screen">
+      <main className="flex flex-col gap-8 items-center">
         <div className="flex gap-4">
           <Button
             onClick={handleRecord}
@@ -163,7 +166,18 @@ export default function Home() {
             <Share className="inline-block" />
           </Button>
         </div>
-        <div className="mt-4 text-xl">Duration: {duration} seconds</div>
+
+        <div className="mt-4 text-xl">
+          {isPlaying || isRecording ? (
+            <>
+              <span>Current: {duration} sec</span> /{" "}
+              <span>Total: {totalDuration} sec</span>
+            </>
+          ) : (
+            <span>Duration: {totalDuration} sec</span>
+          )}
+        </div>
+
         <audio ref={audioElementRef} />
       </main>
     </div>

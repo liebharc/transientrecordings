@@ -133,37 +133,58 @@ export default function Home() {
           <Button
             onClick={handleRecord}
             disabled={isPlaying}
-            className="px-4 py-2 bg-blue-500"
+            className="px-4 py-2 bg-blue-500 h-20 w-20"
           >
             {isRecording ? (
-              <PauseCircle className="inline-block" />
+              <PauseCircle
+                className="inline-block"
+                style={{ width: "48px", height: "48px" }}
+              />
             ) : (
-              <Mic className="inline-block" />
+              <Mic
+                className="inline-block"
+                style={{ width: "48px", height: "48px" }}
+              />
             )}
           </Button>
           <Button
             onClick={handlePlay}
             disabled={!recordedBlob || isRecording}
-            className="px-4 py-2 bg-green-500"
+            size="lg"
+            className="px-4 py-2 bg-green-500 h-20 w-20"
           >
             {isPlaying ? (
-              <PauseCircle className="inline-block" />
+              <PauseCircle
+                className="inline-block"
+                style={{ width: "48px", height: "48px" }}
+              />
             ) : (
-              <PlayCircle className="inline-block" />
+              <PlayCircle
+                className="inline-block"
+                style={{ width: "48px", height: "48px" }}
+              />
             )}
           </Button>
           <Button
             onClick={handleStop}
-            className="px-4 py-2 bg-red-500 text-white rounded"
+            size="lg"
+            className="px-4 py-2 bg-red-500  h-20 w-20"
           >
-            <StopCircle className="inline-block" />
+            <StopCircle
+              className="inline-block"
+              style={{ width: "48px", height: "48px" }}
+            />
           </Button>
           <Button
             disabled={!recordedBlob}
             onClick={handleShare}
-            className="px-4 py-2 bg-yellow-500 text-white rounded"
+            size="lg"
+            className="px-4 py-2 bg-yellow-500  h-20 w-20"
           >
-            <Share className="inline-block" />
+            <Share
+              className="inline-block"
+              style={{ width: "48px", height: "48px" }}
+            />
           </Button>
         </div>
 

@@ -148,7 +148,7 @@ export default function Home() {
           <Button
             onClick={handleRecord}
             disabled={isPlaying}
-            className="px-4 py-2 bg-blue-500 h-20 w-20"
+            className="px-4 py-2  h-20 w-20 bg-blue-500 hover:bg-blue-600"
           >
             {isRecording ? (
               <PauseCircle
@@ -166,7 +166,7 @@ export default function Home() {
             onClick={handlePlay}
             disabled={!recordedBlob || isRecording || totalDuration === 0}
             size="lg"
-            className="px-4 py-2 bg-green-500 h-20 w-20"
+            className="px-4 py-2  h-20 w-20 bg-green-500 hover:bg-green-600"
           >
             {isPlaying ? (
               <PauseCircle
@@ -183,7 +183,7 @@ export default function Home() {
           <Button
             onClick={handleStop}
             size="lg"
-            className="px-4 py-2 bg-red-500  h-20 w-20"
+            className="px-4 py-2 h-20 w-20 bg-red-500 hover:bg-red-600"
           >
             <StopCircle
               className="inline-block"
@@ -194,7 +194,7 @@ export default function Home() {
             disabled={!recordedBlob}
             onClick={handleShare}
             size="lg"
-            className="px-4 py-2 bg-yellow-500  h-20 w-20"
+            className="px-4 py-2 h-20 w-20 bg-yellow-500 hover:bg-yellow-600"
           >
             <Share
               className="inline-block"

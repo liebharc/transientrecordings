@@ -27,27 +27,35 @@ export default function Home() {
     } else {
       // Start recording
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-        });
-        mediaRecorderRef.current = new MediaRecorder(stream);
-        const chunks: Blob[] = [];
+        if (!mediaRecorderRef.current) {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+          });
+          mediaRecorderRef.current = new MediaRecorder(stream);
+          const chunks: Blob[] = [];
 
-        mediaRecorderRef.current.ondataavailable = (e) => {
-          chunks.push(e.data);
-        };
-
-        mediaRecorderRef.current.onstop = () => {
-          const blob = new Blob(chunks, { type: "audio/wav" });
-          setRecordedBlob(blob);
-          // Set the total duration of the recording
-          const audio = new Audio(URL.createObjectURL(blob));
-          audio.onloadedmetadata = () => {
-            setTotalDuration(Math.floor(audio.duration));
+          mediaRecorderRef.current.ondataavailable = (e) => {
+            chunks.push(e.data);
           };
-        };
 
-        mediaRecorderRef.current.start();
+          mediaRecorderRef.current.onstop = () => {
+            const blob = new Blob(chunks, { type: "audio/wav" });
+            audioElementRef.current!.src = URL.createObjectURL(blob);
+            setRecordedBlob(blob);
+            // Set the total duration of the recording
+            const audio = new Audio(URL.createObjectURL(blob));
+            audio.onloadedmetadata = () => {
+              setTotalDuration(Math.floor(audio.duration));
+            };
+          };
+
+          setTotalDuration(0);
+          setDuration(0);
+          mediaRecorderRef.current.start();
+        } else {
+          mediaRecorderRef.current.resume();
+        }
+
         setIsRecording(true);
 
         // Start timer for recording
@@ -66,32 +74,36 @@ export default function Home() {
       audioElementRef.current?.pause();
       setIsPlaying(false);
     } else {
-      if (recordedBlob) {
-        audioElementRef.current!.src = URL.createObjectURL(recordedBlob);
-        audioElementRef.current!.play();
-        setIsPlaying(true);
+      audioElementRef.current!.play();
+      setIsPlaying(true);
 
-        audioElementRef.current!.ontimeupdate = () => {
-          if (audioElementRef.current) {
-            setDuration(Math.floor(audioElementRef.current.currentTime));
-          }
-        };
-      }
+      audioElementRef.current!.ontimeupdate = () => {
+        if (audioElementRef.current) {
+          setDuration(Math.floor(audioElementRef.current.currentTime));
+        }
+      };
     }
   };
 
   // Stop recording or playback
   const handleStop = () => {
-    if (isRecording) {
-      mediaRecorderRef.current?.stop();
-      setIsRecording(false);
-      if (timerRef.current) clearInterval(timerRef.current);
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current = null;
     }
-    if (isPlaying) {
-      audioElementRef.current?.pause();
+
+    if (isRecording) {
+      setIsRecording(false);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    }
+
+    if (isPlaying && audioElementRef.current) {
+      audioElementRef.current.pause();
+      audioElementRef.current.currentTime = 0;
       setIsPlaying(false);
     }
-    setDuration(0);
   };
 
   // Share recorded audio using the Web Share API
@@ -150,7 +162,7 @@ export default function Home() {
           </Button>
           <Button
             onClick={handlePlay}
-            disabled={!recordedBlob || isRecording}
+            disabled={!recordedBlob || isRecording || totalDuration === 0}
             size="lg"
             className="px-4 py-2 bg-green-500 h-20 w-20"
           >
@@ -199,7 +211,7 @@ export default function Home() {
           )}
         </div>
 
-        <audio ref={audioElementRef} />
+        <audio ref={audioElementRef} onEnded={handleStop} />
       </main>
     </div>
   );

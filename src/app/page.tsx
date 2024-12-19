@@ -21,7 +21,9 @@ export default function Home() {
       // Pause recording
       mediaRecorderRef.current?.pause();
       setIsRecording(false);
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
     } else {
       // Start recording
       try {
@@ -95,7 +97,6 @@ export default function Home() {
   // Share recorded audio using the Web Share API
   const handleShare = async () => {
     if (recordedBlob) {
-      const audioUrl = URL.createObjectURL(recordedBlob);
       try {
         if (
           navigator.canShare &&
@@ -189,13 +190,12 @@ export default function Home() {
         </div>
 
         <div className="mt-4 text-xl">
-          {isPlaying || isRecording ? (
-            <>
-              <span>Current: {duration} sec</span> /{" "}
-              <span>Total: {totalDuration} sec</span>
-            </>
+          {!isRecording && totalDuration > 0 ? (
+            <span>
+              Position: {formatTime(duration)}/{formatTime(totalDuration)}
+            </span>
           ) : (
-            <span>Duration: {totalDuration} sec</span>
+            <span>Duration: {formatTime(duration)}</span>
           )}
         </div>
 
@@ -203,4 +203,10 @@ export default function Home() {
       </main>
     </div>
   );
+}
+
+function formatTime(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes}:${remainingSeconds < 10 ? "0" : ""}${remainingSeconds}`;
 }

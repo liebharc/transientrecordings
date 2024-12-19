@@ -112,18 +112,18 @@ export default function Home() {
   const handleShare = async () => {
     if (recordedBlob) {
       try {
+        const file = new File([recordedBlob], "recording.wav", {
+          type: "audio/wav",
+        });
+
         if (
           navigator.canShare &&
           navigator.canShare({
-            files: [
-              new File([recordedBlob], "recording.wav", { type: "audio/wav" }),
-            ],
+            files: [file],
           })
         ) {
           await navigator.share({
-            files: [
-              new File([recordedBlob], "recording.wav", { type: "audio/wav" }),
-            ],
+            files: [file],
             title: "Recorded Audio",
             text: "Check out this recorded audio!",
           });

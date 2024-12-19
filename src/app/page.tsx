@@ -86,6 +86,37 @@ export default function Home() {
     setDuration(0);
   };
 
+  // Share recorded audio using the Web Share API
+  const handleShare = async () => {
+    if (recordedBlob) {
+      const audioUrl = URL.createObjectURL(recordedBlob);
+      try {
+        if (
+          navigator.canShare &&
+          navigator.canShare({ files: [recordedBlob] })
+        ) {
+          // Web Share API available and supports file sharing
+          await navigator.share({
+            files: [
+              new File([recordedBlob], "recording.wav", { type: "audio/wav" }),
+            ],
+            title: "Recorded Audio",
+            text: "Check out this recorded audio!",
+          });
+        } else {
+          alert(
+            "Web Share API is not supported or file sharing is not available."
+          );
+        }
+      } catch (error) {
+        console.error("Error sharing audio:", error);
+        alert("Failed to share the audio.");
+      }
+    } else {
+      alert("No recording to share.");
+    }
+  };
+
   return (
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
       <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
@@ -107,6 +138,12 @@ export default function Home() {
             className="px-4 py-2 bg-red-500 text-white rounded"
           >
             Stop
+          </button>
+          <button
+            onClick={handleShare}
+            className="px-4 py-2 bg-yellow-500 text-white rounded"
+          >
+            Share
           </button>
         </div>
         <div className="mt-4 text-xl">Duration: {duration} seconds</div>

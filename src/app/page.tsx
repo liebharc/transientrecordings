@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, PauseCircle, PlayCircle, Share, StopCircle } from "lucide-react";
+import useAutoResetState from "../../hooks/useAutoResetState";
 
 export default function Home() {
   const [isRecording, setIsRecording] = useState<boolean>(false);
@@ -10,6 +11,7 @@ export default function Home() {
   const [duration, setDuration] = useState<number>(0);
   const [totalDuration, setTotalDuration] = useState<number>(0);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+  const [message, setMessage] = useAutoResetState<string | null>(null, 5000);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
@@ -126,16 +128,16 @@ export default function Home() {
             text: "Check out this recorded audio!",
           });
         } else {
-          alert(
+          setMessage(
             "Web Share API is not supported or file sharing is not available."
           );
         }
       } catch (error) {
         console.error("Error sharing audio:", error);
-        alert("Failed to share the audio.");
+        setMessage("Failed to share the audio.");
       }
     } else {
-      alert("No recording to share.");
+      setMessage("No recording to share.");
     }
   };
 
@@ -200,6 +202,8 @@ export default function Home() {
             />
           </Button>
         </div>
+
+        <p>{message}</p>
 
         <div className="mt-4 text-xl">
           {!isRecording && totalDuration > 0 ? (

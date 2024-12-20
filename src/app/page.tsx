@@ -367,7 +367,7 @@ export default function Home() {
           ) : (
             <>
               <TunerBar pitchDeltaInCents={cents} />
-              <span>
+              <span className="self-center">
                 Duration: {formatTime(getStopWatchDuration(stopWatch))}
               </span>
             </>

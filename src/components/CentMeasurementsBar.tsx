@@ -77,7 +77,7 @@ const CentMeasurementsBar = ({
   }, [draw, centMeasurements, totalDuration]);
 
   return (
-    <div className="flex w-full h-20">
+    <div className="flex w-full h-20 mt-6">
       <canvas ref={canvasRef} className="flex-grow" />
     </div>
   );

@@ -3,6 +3,8 @@
 import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
+  Eye,
+  EyeClosed,
   Mic,
   Pause,
   PauseCircle,
@@ -41,6 +43,8 @@ export default function Home() {
   const [message, setMessage] = useAutoResetState<string | null>(null, 5000);
   const centMeasurements = useRef<Map<number, number>>(new Map());
   const [cents, setCents] = useState<number>(0);
+  const [showTunerRecording, setShowTunerRecording] = useState<boolean>(true);
+  const [showTunerPlayback, setShowTunerPlayback] = useState<boolean>(true);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
@@ -265,8 +269,26 @@ export default function Home() {
 
   return (
     <div className="flex justify-center">
-      <main className="flex flex-col items-stretch gap-8 pt-[33vh] px-2 w-full">
-        <div className="flex gap-4 justify-center">
+      <main className="flex flex-col items-stretch gap-8 px-2 w-full">
+        <div className="flex justify-end p-2">
+          <Button
+            onClick={() => {
+              if (!isRecording && totalDuration > 0) {
+                setShowTunerPlayback(!showTunerPlayback);
+              } else {
+                setShowTunerRecording(!showTunerRecording);
+              }
+            }}
+          >
+            {(!isRecording && totalDuration > 0 && showTunerPlayback) ||
+            (!(!isRecording && totalDuration > 0) && showTunerRecording) ? (
+              <Eye className="inline-block" />
+            ) : (
+              <EyeClosed className="inline-block" />
+            )}
+          </Button>
+        </div>
+        <div className="flex gap-4 justify-center pt-[20vh]">
           <Button
             onClick={handleRecord}
             disabled={isPlaying}
@@ -346,10 +368,12 @@ export default function Home() {
                     onChange={handleSeek}
                     className="w-full"
                   />
-                  <CentMeasurementsBar
-                    centMeasurements={centMeasurements.current}
-                    totalDuration={totalDuration}
-                  />
+                  {showTunerPlayback && (
+                    <CentMeasurementsBar
+                      centMeasurements={centMeasurements.current}
+                      totalDuration={totalDuration}
+                    />
+                  )}
                 </div>
 
                 <Button onClick={handlePlay} className="mt-6">
@@ -366,7 +390,7 @@ export default function Home() {
             </>
           ) : (
             <>
-              <TunerBar pitchDeltaInCents={cents} />
+              {showTunerRecording && <TunerBar pitchDeltaInCents={cents} />}
               <span className="self-center">
                 Duration: {formatTime(getStopWatchDuration(stopWatch))}
               </span>

@@ -1,13 +1,17 @@
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 
 const CentMeasurementsBar = ({
-  centMeasurements,
+  centMeasurements: rawCentMeasurements,
   totalDuration,
 }: {
   centMeasurements: Map<number, number>;
   totalDuration: number;
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  const centMeasurements = useMemo(() => {
+    return getSmoothedCentValues(rawCentMeasurements, 10);
+  }, [rawCentMeasurements]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -80,3 +84,30 @@ const CentMeasurementsBar = ({
 };
 
 export default CentMeasurementsBar;
+
+const calculateMovingAverage = (data: number[], windowSize: number) => {
+  const result = [];
+  for (let i = 0; i < data.length; i++) {
+    const start = Math.max(0, i - windowSize + 1);
+    const end = i + 1;
+    const window = data.slice(start, end);
+    const average =
+      window.reduce((sum, value) => sum + value, 0) / window.length;
+    result.push(average);
+  }
+  return result;
+};
+
+const getSmoothedCentValues = (
+  centMeasurements: Map<number, number>,
+  windowSize: number,
+) => {
+  const timestamps = Array.from(centMeasurements.keys());
+  const centValues = Array.from(centMeasurements.values());
+  const smoothedCentValues = calculateMovingAverage(centValues, windowSize);
+  const smoothedCentMeasurements = new Map<number, number>();
+  timestamps.forEach((timestamp, index) => {
+    smoothedCentMeasurements.set(timestamp, smoothedCentValues[index]);
+  });
+  return smoothedCentMeasurements;
+};

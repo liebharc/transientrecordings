@@ -14,7 +14,6 @@ import {
   Share,
   SkipBack,
   SkipForward,
-  Sliders,
   StopCircle,
 } from "lucide-react";
 import useAutoResetState from "../../hooks/useAutoResetState";
@@ -35,6 +34,17 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import {
+  selectShowTunerPlayback,
+  selectShowTunerRecording,
+  selectTuning,
+} from "@/lib/features/settings/settingsSelector";
+import {
+  setShowTunerPlayback,
+  setShowTunerRecording,
+  setTuning,
+} from "@/lib/features/settings/settingsSlice";
 
 const fftLength = 8 * 1024;
 
@@ -51,9 +61,11 @@ export default function Home() {
   const [message, setMessage] = useAutoResetState<string | null>(null, 5000);
   const centMeasurements = useRef<Map<number, number>>(new Map());
   const [cents, setCents] = useState<number>(0);
-  const [showTunerRecording, setShowTunerRecording] = useState<boolean>(true);
-  const [showTunerPlayback, setShowTunerPlayback] = useState<boolean>(true);
-  const [tuning, setTuning] = useState<number>(440);
+
+  const tuning = useAppSelector(selectTuning);
+  const showTunerRecording = useAppSelector(selectShowTunerRecording);
+  const showTunerPlayback = useAppSelector(selectShowTunerPlayback);
+  const dispatch = useAppDispatch();
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
@@ -274,7 +286,7 @@ export default function Home() {
 
     // Call updatePitch again at the next animation frame
     requestAnimationFrame(updatePitch);
-  }, [setCents, setStopWatch]);
+  }, [setCents, setStopWatch, tuning]);
 
   return (
     <div className="flex justify-center">
@@ -283,9 +295,9 @@ export default function Home() {
           <Button
             onClick={() => {
               if (!isRecording && totalDuration > 0) {
-                setShowTunerPlayback(!showTunerPlayback);
+                dispatch(setShowTunerPlayback(!showTunerPlayback));
               } else {
-                setShowTunerRecording(!showTunerRecording);
+                dispatch(setShowTunerRecording(!showTunerRecording));
               }
             }}
           >
@@ -310,12 +322,12 @@ export default function Home() {
                   value={tuning}
                   min={430}
                   max={450}
-                  onChange={(e) => setTuning(Number(e.target.value))}
+                  onChange={(e) => dispatch(setTuning(Number(e.target.value)))}
                   placeholder="Tuning "
                 />
                 <Slider
                   value={[tuning]}
-                  onValueChange={(value) => setTuning(value[0])}
+                  onValueChange={(value) => dispatch(setTuning(value[0]))}
                   min={430}
                   max={450}
                 />

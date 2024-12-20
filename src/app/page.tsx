@@ -449,7 +449,8 @@ export default function Home() {
           onLoadedMetadata={() => {
             if (
               audioElementRef.current &&
-              !isNaN(audioElementRef.current.duration)
+              !isNaN(audioElementRef.current.duration) &&
+              isFinite(audioElementRef.current.duration)
             ) {
               setTotalDuration(1000 * audioElementRef.current.duration);
             }

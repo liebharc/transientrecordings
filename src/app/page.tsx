@@ -45,6 +45,7 @@ export default function Home() {
   const [cents, setCents] = useState<number>(0);
   const [showTunerRecording, setShowTunerRecording] = useState<boolean>(true);
   const [showTunerPlayback, setShowTunerPlayback] = useState<boolean>(true);
+  const [tuning, setTuning] = useState<number>(440);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
@@ -250,7 +251,7 @@ export default function Home() {
 
       const minClarity = 0.9;
       if (clarity > minClarity) {
-        const centResult = getDifferenceInCents(pitch);
+        const centResult = getDifferenceInCents(pitch, tuning);
         setCents(centResult);
         setStopWatch((currentWatch) => {
           const result = tickStopWatch(currentWatch);

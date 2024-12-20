@@ -10,9 +10,11 @@ import {
   PauseCircle,
   Play,
   PlayCircle,
+  Settings,
   Share,
   SkipBack,
   SkipForward,
+  Sliders,
   StopCircle,
 } from "lucide-react";
 import useAutoResetState from "../../hooks/useAutoResetState";
@@ -27,6 +29,12 @@ import {
 } from "@/lib/stopWatch";
 import { getDifferenceInCents } from "@/lib/music";
 import CentMeasurementsBar from "@/components/CentMeasurementsBar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Slider } from "@/components/ui/slider";
 
 const fftLength = 8 * 1024;
 
@@ -271,7 +279,7 @@ export default function Home() {
   return (
     <div className="flex justify-center">
       <main className="flex flex-col items-stretch gap-8 px-2 w-full">
-        <div className="flex justify-end p-2">
+        <div className="flex justify-end p-2 gap-4">
           <Button
             onClick={() => {
               if (!isRecording && totalDuration > 0) {
@@ -288,6 +296,32 @@ export default function Home() {
               <EyeClosed className="inline-block" />
             )}
           </Button>
+          <Popover>
+            <PopoverTrigger>
+              <Button>
+                <Settings className="inline-block" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent>
+              <div className="flex flex-col gap-4">
+                <label className="text-center">Tuning {tuning} Hz</label>
+                <input
+                  type="number"
+                  value={tuning}
+                  min={430}
+                  max={450}
+                  onChange={(e) => setTuning(Number(e.target.value))}
+                  placeholder="Tuning "
+                />
+                <Slider
+                  value={[tuning]}
+                  onValueChange={(value) => setTuning(value[0])}
+                  min={430}
+                  max={450}
+                />
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
         <div className="flex gap-4 justify-center pt-[20vh]">
           <Button

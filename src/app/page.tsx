@@ -156,7 +156,7 @@ export default function Home() {
 
       audioElementRef.current!.ontimeupdate = () => {
         if (audioElementRef.current) {
-          setDuration(Math.floor(audioElementRef.current.currentTime));
+          setDuration(Math.round(audioElementRef.current.currentTime));
         }
       };
     }
@@ -182,11 +182,10 @@ export default function Home() {
   };
 
   // Seek to a specific time in the audio
-  const handleSeek = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newTime = Number(event.target.value);
-    if (audioElementRef.current) {
-      audioElementRef.current.currentTime = newTime;
-      setDuration(newTime);
+  const handleSeek = (newTime: number) => {
+    if (audioElementRef.current && !isNaN(newTime)) {
+      audioElementRef.current.currentTime = newTime / 1000;
+      setDuration(newTime / 1000);
     }
   };
 
@@ -196,7 +195,7 @@ export default function Home() {
         0,
         audioElementRef.current.currentTime - 5,
       );
-      setDuration(Math.floor(audioElementRef.current.currentTime));
+      setDuration(Math.round(audioElementRef.current.currentTime));
     }
   };
 
@@ -206,7 +205,7 @@ export default function Home() {
         totalDuration,
         audioElementRef.current.currentTime + 5,
       );
-      setDuration(Math.floor(audioElementRef.current.currentTime));
+      setDuration(Math.round(audioElementRef.current.currentTime));
     }
   };
 
@@ -323,7 +322,7 @@ export default function Home() {
                   min={430}
                   max={450}
                   onChange={(e) => dispatch(setTuning(Number(e.target.value)))}
-                  placeholder="Tuning "
+                  placeholder="Tuning"
                 />
                 <Slider
                   value={[tuning]}
@@ -422,8 +421,8 @@ export default function Home() {
                 <Slider
                   min={0}
                   max={totalDuration}
-                  value={[Math.floor(getStopWatchDuration(stopWatch) / 1000)]}
-                  onChange={handleSeek}
+                  value={[getStopWatchDuration(stopWatch)]}
+                  onValueChange={(value) => handleSeek(value[0])}
                   className="w-full my-4"
                 />
                 {showTunerPlayback && (
@@ -444,7 +443,18 @@ export default function Home() {
           )}
         </div>
 
-        <audio ref={audioElementRef} onEnded={handleStop} />
+        <audio
+          ref={audioElementRef}
+          onEnded={handleStop}
+          onLoadedMetadata={() => {
+            if (
+              audioElementRef.current &&
+              !isNaN(audioElementRef.current.duration)
+            ) {
+              setTotalDuration(1000 * audioElementRef.current.duration);
+            }
+          }}
+        />
       </main>
     </div>
   );

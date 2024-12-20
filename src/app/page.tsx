@@ -46,7 +46,7 @@ import {
   setTuning,
 } from "@/lib/features/settings/settingsSlice";
 
-const fftLength = 8 * 1024;
+const fftLength = 16 * 1024;
 
 export default function Home() {
   const [isRecording, setIsRecording] = useState<boolean>(false);
@@ -290,8 +290,8 @@ export default function Home() {
 
   return (
     <div className="flex justify-center">
-      <main className="flex flex-col items-stretch gap-8 px-2 w-full">
-        <div className="flex justify-end p-2 gap-4">
+      <main className="flex flex-col items-stretch gap-8 mx-2 w-full">
+        <div className="flex justify-end gap-4 p-2">
           <Button
             onClick={() => {
               if (!isRecording && totalDuration > 0) {
@@ -398,41 +398,40 @@ export default function Home() {
         <div className="mt-4 text-xl items-stretch flex flex-col">
           {!isRecording && totalDuration > 0 ? (
             <>
-              <div className="flex items-start gap-4 align-top">
-                <Button onClick={handleBackBy5s} className="mt-6">
-                  <SkipBack className="inline-block" />
-                </Button>
-                <div className="flex-1 flex flex-col items-center">
+              <div className="flex-1 flex flex-col items-center">
+                <div className="flex items-center gap-4">
+                  <Button onClick={handleBackBy5s}>
+                    <SkipBack className="inline-block" />
+                  </Button>
                   <span>
                     Position: {formatTime(getStopWatchDuration(stopWatch))}/
                     {formatTime(totalDuration)}
                   </span>
-                  <input
-                    type="range"
-                    min="0"
-                    max={totalDuration}
-                    value={getStopWatchDuration(stopWatch)}
-                    onChange={handleSeek}
-                    className="w-full"
-                  />
-                  {showTunerPlayback && (
-                    <CentMeasurementsBar
-                      centMeasurements={centMeasurements.current}
-                      totalDuration={totalDuration}
-                    />
-                  )}
-                </div>
 
-                <Button onClick={handlePlay} className="mt-6">
-                  {isPlaying ? (
-                    <Pause className="inline-block" />
-                  ) : (
-                    <Play className="inline-block" />
-                  )}
-                </Button>
-                <Button onClick={handleForwardBy5s} className="mt-6">
-                  <SkipForward className="inline-block" />
-                </Button>
+                  <Button onClick={handlePlay}>
+                    {isPlaying ? (
+                      <Pause className="inline-block" />
+                    ) : (
+                      <Play className="inline-block" />
+                    )}
+                  </Button>
+                  <Button onClick={handleForwardBy5s}>
+                    <SkipForward className="inline-block" />
+                  </Button>
+                </div>
+                <Slider
+                  min={0}
+                  max={totalDuration}
+                  value={[Math.floor(getStopWatchDuration(stopWatch) / 1000)]}
+                  onChange={handleSeek}
+                  className="w-full my-4"
+                />
+                {showTunerPlayback && (
+                  <CentMeasurementsBar
+                    centMeasurements={centMeasurements.current}
+                    totalDuration={totalDuration}
+                  />
+                )}
               </div>
             </>
           ) : (

@@ -26,7 +26,7 @@ import {
 import { getDifferenceInCents } from "@/lib/music";
 import CentMeasurementsBar from "@/components/CentMeasurementsBar";
 
-const fftLength = 1024;
+const fftLength = 4 * 1024;
 
 export default function Home() {
   const [isRecording, setIsRecording] = useState<boolean>(false);

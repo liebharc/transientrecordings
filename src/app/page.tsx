@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Mic,
@@ -14,28 +14,54 @@ import {
   StopCircle,
 } from "lucide-react";
 import useAutoResetState from "../../hooks/useAutoResetState";
+import { PitchDetector } from "pitchy";
+import { TunerBar } from "@/components/TunerBar";
+import {
+  createStartedStopWatch,
+  createStoppedStopWatch,
+  getStopWatchDuration,
+  StopWatch,
+  tickStopWatch,
+} from "@/lib/stopWatch";
+import { getDifferenceInCents } from "@/lib/music";
+import CentMeasurementsBar from "@/components/CentMeasurementsBar";
+
+const fftLength = 1024;
 
 export default function Home() {
   const [isRecording, setIsRecording] = useState<boolean>(false);
+  const isRecordingRef = useRef<boolean>(isRecording);
+  isRecordingRef.current = isRecording;
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [duration, setDuration] = useState<number>(0);
+  const [stopWatch, setStopWatch] = useState<StopWatch>(
+    createStoppedStopWatch(),
+  );
   const [totalDuration, setTotalDuration] = useState<number>(0);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [message, setMessage] = useAutoResetState<string | null>(null, 5000);
+  const centMeasurements = useRef<Map<number, number>>(new Map());
+  const [cents, setCents] = useState<number>(0);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserNodeRef = useRef<AnalyserNode | null>(null);
+  const pitchDetectorRef = useRef<PitchDetector<Float32Array>>(
+    PitchDetector.forFloat32Array(fftLength / 2),
+  );
 
-  // Start or stop recording
+  const setDuration = useCallback(
+    (newTime: number) => {
+      setStopWatch(createStoppedStopWatch(newTime * 1000));
+    },
+    [setStopWatch],
+  );
+
   const handleRecord = async () => {
     if (isRecording) {
       // Pause recording
       mediaRecorderRef.current?.pause();
       setIsRecording(false);
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
     } else {
       // Start recording
       try {
@@ -50,7 +76,7 @@ export default function Home() {
             chunks.push(e.data);
           };
 
-          mediaRecorderRef.current.onstop = () => {
+          mediaRecorderRef.current.onstop = async () => {
             const blob = new Blob(chunks, { type: "audio/wav" });
             audioElementRef.current!.src = URL.createObjectURL(blob);
             setRecordedBlob(blob);
@@ -58,23 +84,38 @@ export default function Home() {
             stream.getTracks().forEach((track) => {
               track.stop();
             });
+
+            // Close the audio context
+            if (audioContextRef.current) {
+              await audioContextRef.current.close();
+              audioContextRef.current = null;
+            }
           };
 
+          // Real-time processing setup
+          audioContextRef.current = new AudioContext();
+          const source =
+            audioContextRef.current.createMediaStreamSource(stream);
+
+          analyserNodeRef.current = audioContextRef.current.createAnalyser();
+          analyserNodeRef.current.fftSize = fftLength;
+
+          source.connect(analyserNodeRef.current);
+
           setTotalDuration(0);
-          setDuration(0);
+          centMeasurements.current.clear();
+          setStopWatch(createStartedStopWatch());
           mediaRecorderRef.current.start();
+
+          // Start the pitch detection loop
+          updatePitch();
         } else {
           mediaRecorderRef.current.resume();
         }
 
         setIsRecording(true);
-
-        // Start timer for recording
-        timerRef.current = setInterval(() => {
-          setDuration((prev) => prev + 1);
-        }, 1000);
-      } catch (error) {
-        console.error("Error accessing microphone:", error);
+      } catch (err) {
+        console.error("Error accessing microphone:", err);
       }
     }
   };
@@ -99,16 +140,13 @@ export default function Home() {
   // Stop recording or playback
   const handleStop = () => {
     if (mediaRecorderRef.current) {
-      setTotalDuration(duration);
+      setTotalDuration(getStopWatchDuration(stopWatch));
       mediaRecorderRef.current.stop();
       mediaRecorderRef.current = null;
     }
 
     if (isRecording) {
       setIsRecording(false);
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
     }
 
     if (isPlaying && audioElementRef.current) {
@@ -167,9 +205,19 @@ export default function Home() {
             text: "Check out this recorded audio!",
           });
         } else {
-          setMessage(
-            "Web Share API is not supported or file sharing is not available.",
-          );
+          // Create a download link if sharing is not supported
+          const downloadUrl = URL.createObjectURL(file);
+          const downloadLink = document.createElement("a");
+          downloadLink.href = downloadUrl;
+          downloadLink.download = "recording.wav";
+          downloadLink.textContent = "Download the recording";
+
+          // Append the link to the DOM and click it to trigger the download
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+
+          // Remove the link from the DOM
+          document.body.removeChild(downloadLink);
         }
       } catch (error) {
         console.error("Error sharing audio:", error);
@@ -180,9 +228,50 @@ export default function Home() {
     }
   };
 
+  const updatePitch = useCallback(() => {
+    if (
+      analyserNodeRef.current &&
+      audioContextRef.current &&
+      isRecordingRef.current
+    ) {
+      const dataArray = new Float32Array(
+        analyserNodeRef.current.frequencyBinCount,
+      );
+      analyserNodeRef.current.getFloatTimeDomainData(dataArray);
+
+      const [pitch, clarity] = pitchDetectorRef.current.findPitch(
+        dataArray,
+        audioContextRef.current.sampleRate,
+      );
+
+      const minClarity = 0.9;
+      if (clarity > minClarity) {
+        const centResult = getDifferenceInCents(pitch);
+        setCents(centResult);
+        setStopWatch((currentWatch) => {
+          const result = tickStopWatch(currentWatch);
+          const duration = getStopWatchDuration(result);
+          centMeasurements.current.set(duration, centResult);
+          return result;
+        });
+      } else {
+        const centResult = 0;
+        setStopWatch((currentWatch) => {
+          const result = tickStopWatch(currentWatch);
+          const duration = getStopWatchDuration(result);
+          centMeasurements.current.set(duration, centResult);
+          return result;
+        });
+      }
+    }
+
+    // Call updatePitch again at the next animation frame
+    requestAnimationFrame(updatePitch);
+  }, [setCents, setStopWatch]);
+
   return (
     <div className="flex justify-center">
-      <main className="flex flex-col gap-8 pt-[33vh] px-2">
+      <main className="flex flex-col items-stretch gap-8 pt-[33vh] px-2">
         <div className="flex gap-4 justify-center">
           <Button
             onClick={handleRecord}
@@ -243,46 +332,51 @@ export default function Home() {
         </div>
 
         <p>{message}</p>
-
         <div className="mt-4 text-xl items-center justify-center flex flex-col">
           {!isRecording && totalDuration > 0 ? (
             <>
-              <span>
-                Position: {formatTime(duration)}/{formatTime(totalDuration)}
-              </span>
-              <div className="flex items-center gap-4">
-                <Button
-                  onClick={handleBackBy5s}
-                  className="px-4 py-2 bg-gray-500"
-                >
+              <div className="flex items-start gap-4 align-top ">
+                <Button onClick={handleBackBy5s} className="mt-6">
                   <SkipBack className="inline-block" />
                 </Button>
-                <input
-                  type="range"
-                  min="0"
-                  max={totalDuration}
-                  value={duration}
-                  onChange={handleSeek}
-                  className="w-full"
-                />
+                <div className="flex-1 flex flex-col items-center">
+                  <span>
+                    Position: {formatTime(getStopWatchDuration(stopWatch))}/
+                    {formatTime(totalDuration)}
+                  </span>
+                  <input
+                    type="range"
+                    min="0"
+                    max={totalDuration}
+                    value={getStopWatchDuration(stopWatch)}
+                    onChange={handleSeek}
+                    className="w-full"
+                  />
+                  <CentMeasurementsBar
+                    centMeasurements={centMeasurements.current}
+                    totalDuration={totalDuration}
+                  />
+                </div>
 
-                <Button onClick={handlePlay}>
+                <Button onClick={handlePlay} className="mt-6">
                   {isPlaying ? (
                     <Pause className="inline-block" />
                   ) : (
                     <Play className="inline-block" />
                   )}
                 </Button>
-                <Button
-                  onClick={handleForwardBy5s}
-                  className="px-4 py-2 bg-gray-500"
-                >
+                <Button onClick={handleForwardBy5s} className="mt-6">
                   <SkipForward className="inline-block" />
                 </Button>
               </div>
             </>
           ) : (
-            <span>Duration: {formatTime(duration)}</span>
+            <>
+              <TunerBar pitchDeltaInCents={cents} />
+              <span>
+                Duration: {formatTime(getStopWatchDuration(stopWatch))}
+              </span>
+            </>
           )}
         </div>
 
@@ -292,7 +386,8 @@ export default function Home() {
   );
 }
 
-function formatTime(seconds: number) {
+function formatTime(millis: number) {
+  const seconds = Math.floor(millis / 1000);
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
   return `${minutes}:${remainingSeconds < 10 ? "0" : ""}${remainingSeconds}`;

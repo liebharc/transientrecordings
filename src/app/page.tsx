@@ -255,13 +255,7 @@ export default function Home() {
           return result;
         });
       } else {
-        const centResult = 0;
-        setStopWatch((currentWatch) => {
-          const result = tickStopWatch(currentWatch);
-          const duration = getStopWatchDuration(result);
-          centMeasurements.current.set(duration, centResult);
-          return result;
-        });
+        setStopWatch(tickStopWatch);
       }
     }
 
@@ -271,12 +265,12 @@ export default function Home() {
 
   return (
     <div className="flex justify-center">
-      <main className="flex flex-col items-stretch gap-8 pt-[33vh] px-2">
+      <main className="flex flex-col items-stretch gap-8 pt-[33vh] px-2 w-full">
         <div className="flex gap-4 justify-center">
           <Button
             onClick={handleRecord}
             disabled={isPlaying}
-            className="px-4 py-2  h-20 w-20 bg-blue-500 hover:bg-blue-600"
+            className="px-4 py-2 h-20 w-20 bg-blue-500 hover:bg-blue-600"
           >
             {isRecording ? (
               <PauseCircle
@@ -332,10 +326,10 @@ export default function Home() {
         </div>
 
         <p>{message}</p>
-        <div className="mt-4 text-xl items-center justify-center flex flex-col">
+        <div className="mt-4 text-xl items-stretch flex flex-col">
           {!isRecording && totalDuration > 0 ? (
             <>
-              <div className="flex items-start gap-4 align-top ">
+              <div className="flex items-start gap-4 align-top">
                 <Button onClick={handleBackBy5s} className="mt-6">
                   <SkipBack className="inline-block" />
                 </Button>

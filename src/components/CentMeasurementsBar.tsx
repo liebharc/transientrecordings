@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 
 const CentMeasurementsBar = ({
   centMeasurements,
@@ -9,7 +9,7 @@ const CentMeasurementsBar = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  useEffect(() => {
+  const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -53,7 +53,30 @@ const CentMeasurementsBar = ({
     }
   }, [centMeasurements, totalDuration]);
 
-  return <canvas ref={canvasRef} width={500} height={50} />;
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      draw();
+    });
+
+    resizeObserver.observe(canvas);
+
+    return () => {
+      resizeObserver.unobserve(canvas);
+    };
+  }, [draw, centMeasurements, totalDuration]);
+
+  useEffect(() => {
+    draw();
+  }, [draw, centMeasurements, totalDuration]);
+
+  return (
+    <div className="flex w-full h-20">
+      <canvas ref={canvasRef} className="flex-grow" />
+    </div>
+  );
 };
 
 export default CentMeasurementsBar;

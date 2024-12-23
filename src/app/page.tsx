@@ -154,9 +154,11 @@ export default function Home() {
     if (isPlaying) {
       audioElementRef.current?.pause();
       setIsPlaying(false);
+      release();
     } else {
       audioElementRef.current!.play();
       setIsPlaying(true);
+      request();
 
       audioElementRef.current!.ontimeupdate = () => {
         if (audioElementRef.current) {

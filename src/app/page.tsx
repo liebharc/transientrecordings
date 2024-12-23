@@ -45,12 +45,14 @@ import {
   setShowTunerRecording,
   setTuning,
 } from "@/lib/features/settings/settingsSlice";
+import { useWakeLock } from "../../hooks/useWakeLock";
 
 const fftLength = 16 * 1024;
 
 export default function Home() {
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const isRecordingRef = useRef<boolean>(isRecording);
+  const { request, release } = useWakeLock();
   isRecordingRef.current = isRecording;
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [stopWatch, setStopWatch] = useState<StopWatch>(
@@ -87,6 +89,7 @@ export default function Home() {
       // Pause recording
       mediaRecorderRef.current?.pause();
       setIsRecording(false);
+      release();
     } else {
       // Start recording
       try {
@@ -138,6 +141,7 @@ export default function Home() {
           mediaRecorderRef.current.resume();
         }
 
+        request();
         setIsRecording(true);
       } catch (err) {
         console.error("Error accessing microphone:", err);
@@ -179,6 +183,8 @@ export default function Home() {
       audioElementRef.current.currentTime = 0;
       setIsPlaying(false);
     }
+
+    release();
   };
 
   // Seek to a specific time in the audio

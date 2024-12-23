@@ -95,9 +95,17 @@ export default function Home() {
       try {
         if (!mediaRecorderRef.current) {
           const stream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
+            audio: {
+              sampleRate: 44100,
+              channelCount: 1, // Mono assuming a single audio source
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            },
           });
-          mediaRecorderRef.current = new MediaRecorder(stream);
+          mediaRecorderRef.current = new MediaRecorder(stream, {
+            audioBitsPerSecond: 128000,
+          });
           const chunks: Blob[] = [];
 
           mediaRecorderRef.current.ondataavailable = (e) => {

@@ -269,7 +269,13 @@ export default function Home() {
       );
 
       const minClarity = 0.9;
-      if (clarity > minClarity) {
+      const minFrequency = 32.7; // C1 with 440 Hz tuning
+      const maxFrequency = 2093; // C7 with 440 Hz tuning
+      if (
+        clarity > minClarity &&
+        pitch > minFrequency &&
+        pitch < maxFrequency
+      ) {
         const centResult = getDifferenceInCents(pitch, tuning);
         setCents(centResult);
         setStopWatch((currentWatch) => {

@@ -13,7 +13,7 @@ import { getDifferenceInCents } from "@/lib/music";
 
 const fftLength = 16 * 1024;
 
-export function useRecorder(tuning: number) {
+export function useRecorder(tuning: number, limitLength: number = -1) {
   const { request, release } = useWakeLock();
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const isRecordingRef = useRef<boolean>(isRecording);
@@ -35,6 +35,8 @@ export function useRecorder(tuning: number) {
   const pitchDetectorRef = useRef<PitchDetector<Float32Array>>(
     PitchDetector.forFloat32Array(fftLength / 2),
   );
+  const [isMusicDetected, setIsMusicDetected] = useState<boolean>(false);
+  const isMusicDetectedWindow = useRef<boolean[]>([]);
 
   const setDuration = useCallback(
     (newTime: number) => {
@@ -68,7 +70,15 @@ export function useRecorder(tuning: number) {
           const chunks: Blob[] = [];
 
           mediaRecorderRef.current.ondataavailable = (e) => {
+            if (limitLength === 0) {
+              return;
+            }
+
             chunks.push(e.data);
+
+            while (limitLength > 0 && chunks.length > limitLength) {
+              chunks.unshift();
+            }
           };
 
           mediaRecorderRef.current.onstop = async () => {
@@ -259,9 +269,17 @@ export function useRecorder(tuning: number) {
           centMeasurements.current.set(duration, centResult);
           return result;
         });
+        isMusicDetectedWindow.current.push(true);
       } else {
         setStopWatch(tickStopWatch);
+        isMusicDetectedWindow.current.push(false);
       }
+
+      while (isMusicDetectedWindow.current.length > 10) {
+        isMusicDetectedWindow.current.shift();
+      }
+
+      setIsMusicDetected(!!isMusicDetectedWindow.current.find((c) => c));
     }
 
     // Call updatePitch again at the next animation frame
@@ -278,6 +296,7 @@ export function useRecorder(tuning: number) {
     audioElementRef,
     cents,
     centMeasurements,
+    isMusicDetected,
     handlePlay,
     handleRecord,
     handleStop,

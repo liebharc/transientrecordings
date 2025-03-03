@@ -10,8 +10,14 @@ import useAutoResetState from "./useAutoResetState";
 import { PitchDetector } from "pitchy";
 import { useWakeLock } from "./useWakeLock";
 import { getDifferenceInCents } from "@/lib/music";
+import { useOnExit } from "./useOnExit";
 
 const fftLength = 16 * 1024;
+const musicDetectionWindowSize = 100;
+
+function isFakeMode() {
+  return process.env.NEXT_PUBLIC_FAKE_RECORDER === "true";
+}
 
 export function useRecorder(tuning: number, limitLength: number = -1) {
   const { request, release } = useWakeLock();
@@ -55,67 +61,76 @@ export function useRecorder(tuning: number, limitLength: number = -1) {
       // Start recording
       try {
         if (!mediaRecorderRef.current) {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              sampleRate: 44100,
-              channelCount: 1, // Mono assuming a single audio source
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true,
-            },
-          });
-          mediaRecorderRef.current = new MediaRecorder(stream, {
-            audioBitsPerSecond: 128000,
-          });
-          const chunks: Blob[] = [];
-
-          mediaRecorderRef.current.ondataavailable = (e) => {
-            if (limitLength === 0) {
-              return;
-            }
-
-            chunks.push(e.data);
-
-            while (limitLength > 0 && chunks.length > limitLength) {
-              chunks.unshift();
-            }
-          };
-
-          mediaRecorderRef.current.onstop = async () => {
-            const blob = new Blob(chunks, { type: "audio/wav" });
-            audioElementRef.current!.src = URL.createObjectURL(blob);
-            setRecordedBlob(blob);
-
-            stream.getTracks().forEach((track) => {
-              track.stop();
+          if (isFakeMode()) {
+            setInterval(() => {
+              setIsMusicDetected(Math.random() > 0.3);
+              setTotalDuration((d) => d + 1);
+            }, 1000);
+          } else {
+            const stream = await navigator.mediaDevices.getUserMedia({
+              audio: {
+                sampleRate: 44100,
+                channelCount: 1, // Mono assuming a single audio source
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+              },
             });
+            mediaRecorderRef.current = new MediaRecorder(stream, {
+              audioBitsPerSecond: 128000,
+            });
+            const chunks: Blob[] = [];
 
-            // Close the audio context
-            if (audioContextRef.current) {
-              await audioContextRef.current.close();
-              audioContextRef.current = null;
-            }
-          };
+            mediaRecorderRef.current.ondataavailable = (e) => {
+              if (limitLength === 0) {
+                return;
+              }
 
-          // Real-time processing setup
-          audioContextRef.current = new AudioContext();
-          const source =
-            audioContextRef.current.createMediaStreamSource(stream);
+              chunks.push(e.data);
 
-          analyserNodeRef.current = audioContextRef.current.createAnalyser();
-          analyserNodeRef.current.fftSize = fftLength;
+              while (limitLength > 0 && chunks.length > limitLength) {
+                chunks.unshift();
+              }
+            };
 
-          source.connect(analyserNodeRef.current);
+            mediaRecorderRef.current.onstop = async () => {
+              const blob = new Blob(chunks, { type: "audio/wav" });
+              if (audioElementRef.current) {
+                audioElementRef.current.src = URL.createObjectURL(blob);
+              }
+              setRecordedBlob(blob);
+
+              stream.getTracks().forEach((track) => {
+                track.stop();
+              });
+
+              // Close the audio context
+              if (audioContextRef.current) {
+                await audioContextRef.current.close();
+                audioContextRef.current = null;
+              }
+            };
+
+            // Real-time processing setup
+            audioContextRef.current = new AudioContext();
+            const source =
+              audioContextRef.current.createMediaStreamSource(stream);
+
+            analyserNodeRef.current = audioContextRef.current.createAnalyser();
+            analyserNodeRef.current.fftSize = fftLength;
+
+            source.connect(analyserNodeRef.current);
+          }
 
           setTotalDuration(0);
           centMeasurements.current.clear();
           setStopWatch(createStartedStopWatch());
-          mediaRecorderRef.current.start();
+          mediaRecorderRef.current?.start();
 
           // Start the pitch detection loop
           updatePitch();
         } else {
-          mediaRecorderRef.current.resume();
+          mediaRecorderRef.current?.resume();
         }
 
         request();
@@ -145,6 +160,17 @@ export function useRecorder(tuning: number, limitLength: number = -1) {
     }
   };
 
+  const handleExit = useCallback(() => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current = null;
+    }
+    setIsRecording(false);
+    release();
+  }, [release]);
+
+  useOnExit(handleExit);
+
   // Stop recording or playback
   const handleStop = () => {
     if (mediaRecorderRef.current) {
@@ -153,7 +179,7 @@ export function useRecorder(tuning: number, limitLength: number = -1) {
       mediaRecorderRef.current = null;
     }
 
-    if (isRecording) {
+    if (isRecordingRef.current) {
       setIsRecording(false);
     }
 
@@ -275,7 +301,7 @@ export function useRecorder(tuning: number, limitLength: number = -1) {
         isMusicDetectedWindow.current.push(false);
       }
 
-      while (isMusicDetectedWindow.current.length > 10) {
+      while (isMusicDetectedWindow.current.length > musicDetectionWindowSize) {
         isMusicDetectedWindow.current.shift();
       }
 

@@ -85,9 +85,7 @@ export default function Home() {
           </Button>
           <Popover>
             <PopoverTrigger>
-              <Button>
-                <Settings className="inline-block" />
-              </Button>
+              <Settings className="inline-block" />
             </PopoverTrigger>
             <PopoverContent>
               <div className="flex flex-col gap-4">
